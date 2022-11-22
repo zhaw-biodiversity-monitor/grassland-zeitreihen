@@ -1,0 +1,3 @@
+[submodule "grassland-data"]
+	path = grassland-data
+	url = https://github.com/zhaw-biodiversity-monitor/grassland-data
