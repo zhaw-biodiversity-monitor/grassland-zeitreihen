@@ -49,7 +49,7 @@ shinyUI(fluidPage(
           selectInput("aggregation","Aggregationsstufe",unique(layers$aggregation1)),
           selectInput("column_y","Unabhängige Variabel 1",c("artenreichtum_gefasspflanzen", "artenreichtum_neophyten", "artenanteil_neophyten", "deckungsanteil_neophyten", "temperaturzahl", "kontinentalitatszahl", "feuchtezahl", "reaktionszahl", "nahrstoffzahl", "strategie_c", "strategie_r", "strategie_s")),
           selectInput("colorize","Farbskala", c("Graduell" = "linear", "Bivariate" = c("Intensität" = "intensity","Durchsichtigkeit" = "alpha"))),
-          plotlyOutput("boxplot2"),
+          plotlyOutput("scatterplot"),
         ),
         
         # Show a plot of the generated distribution

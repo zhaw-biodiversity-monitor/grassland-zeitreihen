@@ -225,30 +225,32 @@ shinyServer(function(input, output) {
   
     
    grassland_inbounds_drawing <- reactive({
-
     all_features <- input$map_draw_all_features
-
     coords <- all_features[[2]][[1]]$geometry$coordinates
-
     latRng <- sapply(coords, \(x)x[[2]]) |> range()
     lngRng <- sapply(coords, \(x)x[[1]]) |> range()
-
     filter(grassland,
            breite >= latRng[1] & breite <= latRng[2] &
              lange >= lngRng[1] & lange <= lngRng[2])
     })
 
-    output$boxplot2 <- renderPlotly({
-      rbind(
-        mutate(grassland_inbounds(), typ = "in bound"),
-        mutate(grassland, typ = "all")
+    output$scatterplot <- renderPlotly({
+      
+      grassland <- grassland |> rename(column_y = input$column_y) 
+      grassland_inbounds <- grassland_inbounds() |> rename(column_y = input$column_y) 
+      # browser()
+      grassland |> 
+        plot_ly(x = ~meereshohe, y = ~column_y,type = "scatter", mode = "markers", marker = list(color = 'rgba(255, 182, 193, 1)'),name = "all") |> 
+        add_trace(data = grassland_inbounds, marker = list(color = "rgba(255,255,255,0)",line = list(color = "rgba(152, 0, 0, .8)", width = 2)),name = "in bounds") |> 
+        layout(
+          hovermode = FALSE,
+          clickmode = "none", 
+          modebar  = list(
+            remove = c("autoScale2d", "autoscale", "editInChartStudio", "editinchartstudio", "hoverCompareCartesian", "hovercompare", "lasso", "lasso2d", "orbitRotation", "orbitrotation", "pan", "pan2d", "pan3d", "reset", "resetCameraDefault3d", "resetCameraLastSave3d", "resetGeo", "resetSankeyGroup", "resetScale2d", "resetViewMapbox", "resetViews", "resetcameradefault", "resetcameralastsave", "resetsankeygroup", "resetscale", "resetview", "resetviews", "select", "select2d", "sendDataToCloud", "senddatatocloud", "tableRotation", "tablerotation", "toImage", "toggleHover", "toggleSpikelines", "togglehover", "togglespikelines", "toimage", "zoom", "zoom2d", "zoom3d", "zoomIn2d", "zoomInGeo", "zoomInMapbox", "zoomOut2d", "zoomOutGeo", "zoomOutMapbox", "zoomin", "zoomout", "displaylogo")
+            )
+          )
 
-      ) |>
-        plot_ly(x = ~typ, y = ~artenreichtum_gefasspflanzen, type = "box") |>
-        config(displayModeBar = FALSE) |>
-        plotly::layout(hovermode = FALSE)
+        
+        
     })
-    
-
-
 })
