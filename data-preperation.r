@@ -148,12 +148,11 @@ xlsx_path <- "grassland-data-raw/Grassland_ALLEMA-BDM-WBS_v.6_Biodiversitätsmon
 gpkg_path <- "appdata/vectors.gpkg"
 
 # delete_all_layers(gpkg_path)
-lays <- read_all_layers(gpkg_path)
+# lays <- read_all_layers(gpkg_path)
 
 grass_df <- imap(sheets, ~import_sheet(xlsx_path, .x))
 
 
-imap(grass_df, ~write_csv(.x, glue("appdata/{.y}.csv")))
 
 grass_sf <- imap(grass_df, ~st_as_sf(.x, coords = c("x_lv95","y_lv95"), crs = 2056, remove = FALSE) )
 
@@ -161,7 +160,7 @@ grass_sf <- imap(grass_df, ~st_as_sf(.x, coords = c("x_lv95","y_lv95"), crs = 20
 hex10 <- st_make_grid(schweiz, 10000,square = FALSE) |> st_as_sf()
 hex20 <- st_make_grid(schweiz, 20000,square = FALSE) |> st_as_sf()
 
-hex10_BGR <- hexagonize(hex10,BGR, DERegionNa)
+hex10_BGR <- hexagonize(hex10, BGR, DERegionNa)
 hex10_BGR_l <- imap(grass_sf, ~aggregate_grass(.x, hex10_BGR))
 imap(hex10_BGR_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_path, glue("hex10_BGR_{y}"),delete_layer = TRUE)})
 
@@ -176,11 +175,23 @@ hex20_l <- imap(grass_sf, ~aggregate_grass(.x, hex20))
 imap(hex20_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_path, glue("hex20_{y}"),delete_layer = TRUE)})
 
 
+BGR <- BGR |> 
+  group_by(BGR = DERegionNa) |> 
+  summarise()
+
+
 BGR_l <- imap(grass_sf, ~aggregate_grass(.x, BGR))
 imap(BGR_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_path, glue("BGR_{y}"),delete_layer = TRUE)})
+grass_sf <- map(grass_sf, \(x) st_join(x, BGR))
+
+
+kantone <- kantone |> 
+  group_by(kantone = NAME) |> 
+  summarise()
 
 kantone_l <- imap(grass_sf, ~aggregate_grass(.x, kantone))
 imap(kantone_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_path, glue("kantone_{y}"),delete_layer = TRUE)})
+grass_sf <- map(grass_sf, \(x) st_join(x, kantone))
 
 layers <- tibble(layer_name = st_layers(gpkg_path)$name)
 
@@ -189,3 +200,37 @@ layers <- layers |>
   separate(aggregation, c("aggregation1","aggregation2"),sep = "_",fill = "right")
 
 write_sf(layers, gpkg_path, "layers_overview")
+
+
+
+
+calculate_precision <- function(lat,lng,precision,crs = 4326){
+  # rounded <- sapply(coords, \(x) round(x,precision))
+  coords <- cbind(lat,lng) |> 
+    as.data.frame()
+  coords_sf <- st_as_sf(coords, coords = c("lat","lng"),crs = crs)
+  
+  added <- lapply(coords, \(x) x+1/10^precision) |> as.data.frame()
+  added_sf <- st_as_sf(added, coords = c("lat","lng"),crs = crs)
+  
+  st_distance(coords_sf,added_sf,by_element = TRUE)
+
+}
+
+calculate_precision(grass_df$normallandschaft$breite,grass_df$normallandschaft$lange,2) |> summary()
+
+# imap(grass_df, ~write_csv(.x, glue("appdata/{.y}.csv")))
+# this following line reduces the precision to 2 decimal places 
+# in WGS84 is about 1'500m (+/- 750m?). With this approach, the 
+# raw data can basically be made publicly accessible (I need to confirm this
+# with deng). It's important to do this rounding on the basis on WGS84 coordinates
+# since the coordinates in 2056 are in some cases already a round number (since
+# they originate from a "grid" placed over Switzerland in 21781 or 2056)
+grass_sf |> 
+  imap(\(x,y){
+    x |> 
+      select(-ends_with("lv95")) |> 
+      mutate(across(c(lange,breite),\(z)round(z,2))) |> 
+      st_drop_geometry() |> 
+      write_csv(glue("appdata/{y}.csv"))
+  })
