@@ -40,11 +40,7 @@ shinyUI(fluidPage(
     # Sidebar with a slider input for number of bins
     sidebarLayout(
         sidebarPanel(
-            sliderInput("hoehenstufe",
-                        "Höhenstufe:",
-                        min = 0,
-                        max = 3000,
-                        value = c(0,3000)),
+          # sliderInput("hoehenstufe", "Höhenstufe:", min = 0, max = 3000, value = c(0,3000)),
           selectInput("datensatz","Datensatz",unique(layers$dataset)),
           selectInput("aggregation","Aggregationsstufe",unique(layers$aggregation1)),
           selectInput("column_y","Unabhängige Variabel 1",c("artenreichtum_gefasspflanzen", "artenreichtum_neophyten", "artenanteil_neophyten", "deckungsanteil_neophyten", "temperaturzahl", "kontinentalitatszahl", "feuchtezahl", "reaktionszahl", "nahrstoffzahl", "strategie_c", "strategie_r", "strategie_s")),
