@@ -5,7 +5,8 @@ library(leaflet)
 library(ggplot2)
 library(dplyr)
 library(mapedit)
-library(leafpm)
+# library(leafpm)
+library(leaflet.extras)
 library(plotly)
 library(htmltools) # for htmlEscape
 library(tidyr)
@@ -94,8 +95,15 @@ shinyServer(function(input, output) {
       addLayersControl(baseGroups = c("Pixelkarte grau", "Pixelkarte farbig", "Swissimage")) |> 
       fitBounds(5.955902,45.81796,10.49206,47.80845 ) |> 
       # set singleFeature = TRUE to only disaable multi-feature drawing
-      addDrawToolbar(polylineOptions = FALSE, polygonOptions = FALSE,circleOptions = FALSE,markerOptions = FALSE, circleMarkerOptions= FALSE, singleFeature = FALSE)
-    
+      addDrawToolbar(
+        polylineOptions = FALSE, 
+        polygonOptions = FALSE,
+        circleOptions = FALSE,
+        markerOptions = FALSE, 
+        circleMarkerOptions= FALSE, 
+        singleFeature = TRUE,
+        editOptions = editToolbarOptions()
+        )
     
   })
   
@@ -150,41 +158,45 @@ shinyServer(function(input, output) {
   })
   
 
-  grassland_inbounds <- reactive({
-    if (is.null(input$map_bounds))
-      return(grassland[FALSE,])
-    bounds <- input$map_bounds
-    latRng <- range(bounds$north, bounds$south)
-    lngRng <- range(bounds$east, bounds$west)
-    
-    filter(
-      grassland,
-      breite >= latRng[1],
-      breite <= latRng[2],
-      lange >= lngRng[1],
-      lange <= lngRng[2],
-          )
-      })
+  
   
   
   ranges <- reactive({
-    features <- input$map_draw_all_features$features
-    coords <- features[[1]]$geometry$coordinates[[1]]
-    
+    all_features <- input$map_draw_all_features
+    features <- all_features$features
     coords <- map(features, \(x)x$geometry$coordinates[[1]])
-    
-    # if(length(features)>2){
-    #   browser()
-    # }
-    
     map(coords, \(x){
       x |> 
         map(\(y)c(y[[1]],y[[2]])) |> 
         do.call(rbind, args = _) |> 
         apply(2,range)
-        
       })
+    
   })
+  
+  grassland_inbounds <- reactive({
+    # ranges()
+    # ranges <- ranges()[[1]]
+    
+    
+    if(length(ranges())>0){
+      # browser()
+      ranges <- ranges()[[1]]
+      lat <- ranges[,1]
+      lat <- ranges[,2]
+      grassland |> 
+        filter(lange > min(lng), lange < max(lng),breite > min(lat), breite < max(lat))
+    
+    } else{
+      grassland[FALSE, ]
+    }
+  })
+   
+  
+  
+  
+  # observeEvent(input$map_draw_all_features,{browser()})
+  
   
   
   # grassland_inbounds_drawing <- reactive({
