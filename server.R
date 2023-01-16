@@ -4,7 +4,8 @@ library(sf)
 library(leaflet)
 library(ggplot2)
 library(dplyr)
-# library(mapedit)
+library(mapedit)
+library(leafpm)
 library(plotly)
 library(htmltools) # for htmlEscape
 library(tidyr)
@@ -80,56 +81,6 @@ bivariate_matrix_alpha <- function(mypal, n = length(mypal), alpha_range = c(0,1
   }) 
 }
 
-
-# get_bivariate_plot <- function(prob1, prob2){
-#   df0 <- tibble(
-#     xstart = head(prob2,-1),
-#     xend = tail(prob2, -1),
-#     x_i = seq_len(length(prob2)-1),
-#     ystart = head(prob1,-1),
-#     yend = tail(prob1, -1),
-#     y_i = seq_len(length(prob1)-1),
-#   )
-#   
-#   df <- complete(df0, nesting(xstart, xend, x_i),nesting(ystart, yend, y_i))
-#   
-#   tibble(
-#     x_i = seq_len(length(prob2)-1),
-#     xstart_name = head(names(prob2),-1),
-#     xend_name = tail(names(prob2), -1),
-#   )
-#   
-#   tibble(
-#     y_i = seq_len(length(prob1)-1),
-#     ystart_name = head(names(prob1),-1),
-#     yend_name = tail(names(prob1), -1),
-#   )
-#   
-#   # vec_names <- names(vecs)
-#   df$grp <- apply(cbind(df$y_i, df$x_i), 1, \(x) mat[x[1],x[2]])
-#   
-#   names(bivpal) <- sort(df$grp)
-#   
-#   xbreaks <- rowMeans(cbind(df0$x_i,lead(df0$x_i)))
-#   xlabs <- as.integer(lead(df0$xend))
-#   
-#   ybreaks <- rowMeans(cbind(df0$y_i,lead(df0$y_i)))
-#   ylabs <- as.integer(lead(df0$yend))    
-#   ggplot(df, aes(x = x_i, y = y_i, fill = as.character(grp))) +
-#     geom_raster() +
-#     scale_fill_manual(values = bivpal) +
-#     scale_x_continuous(breaks = xbreaks, labels = xlabs) +
-#     scale_y_continuous(breaks = ybreaks, labels = ylabs) +
-#     coord_equal() +
-#     # labs(x = vec_names[2], y = vec_names[1]) +
-#     theme(legend.position = "none", 
-#           panel.grid = element_blank(),
-#           panel.background = element_blank(),
-#           # axis.text = element_blank(),
-#           axis.ticks = element_blank())
-# }
-  
-
 gpkg_path <- "appdata/vectors.gpkg"
 geodata <- read_all_layers(gpkg_path,"layers_overview")
 
@@ -141,11 +92,14 @@ shinyServer(function(input, output) {
       addTiles("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg",group = "Swissimage") |>
       addTiles("https://wmts20.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg", group = "Pixelkarte farbig") |>
       addLayersControl(baseGroups = c("Pixelkarte grau", "Pixelkarte farbig", "Swissimage")) |> 
-      fitBounds(5.955902,45.81796,10.49206,47.80845 )
+      fitBounds(5.955902,45.81796,10.49206,47.80845 ) |> 
+      # set singleFeature = TRUE to only disaable multi-feature drawing
+      addDrawToolbar(polylineOptions = FALSE, polygonOptions = FALSE,circleOptions = FALSE,markerOptions = FALSE, circleMarkerOptions= FALSE, singleFeature = FALSE)
+    
+    
   })
   
   observe({
-    
     layer_name <- paste(input$aggregation, input$datensatz, sep = "_")
     geodata_i <- na.omit(geodata[[layer_name]])
     ycol <- geodata_i[[input$column_y]]
@@ -195,15 +149,7 @@ shinyServer(function(input, output) {
     
   })
   
-  clicked_loc <- reactive({
-    event <- input$map_shape_click
-    if (is.null(event)){
-      return()
-    }
-    input$map_shape_click
-    
-    })
- 
+
   grassland_inbounds <- reactive({
     if (is.null(input$map_bounds))
       return(grassland[FALSE,])
@@ -211,44 +157,70 @@ shinyServer(function(input, output) {
     latRng <- range(bounds$north, bounds$south)
     lngRng <- range(bounds$east, bounds$west)
     
-    hoehenstufe <- input$hoehenstufe
     filter(
       grassland,
       breite >= latRng[1],
       breite <= latRng[2],
       lange >= lngRng[1],
       lange <= lngRng[2],
-      meereshohe >= hoehenstufe[1],
-      meereshohe <= hoehenstufe[2]
-           )
+          )
+      })
+  
+  
+  ranges <- reactive({
+    features <- input$map_draw_all_features$features
+    coords <- features[[1]]$geometry$coordinates[[1]]
+    
+    coords <- map(features, \(x)x$geometry$coordinates[[1]])
+    
+    # if(length(features)>2){
+    #   browser()
+    # }
+    
+    map(coords, \(x){
+      x |> 
+        map(\(y)c(y[[1]],y[[2]])) |> 
+        do.call(rbind, args = _) |> 
+        apply(2,range)
+        
+      })
   })
   
-    
-   grassland_inbounds_drawing <- reactive({
-    all_features <- input$map_draw_all_features
-    coords <- all_features[[2]][[1]]$geometry$coordinates
-    latRng <- sapply(coords, \(x)x[[2]]) |> range()
-    lngRng <- sapply(coords, \(x)x[[1]]) |> range()
-    filter(grassland,
-           breite >= latRng[1] & breite <= latRng[2] &
-             lange >= lngRng[1] & lange <= lngRng[2])
-    })
+  
+  # grassland_inbounds_drawing <- reactive({
+  #   all_features <- input$map_draw_all_features
+  #   coords <- all_features[[2]][[1]]$geometry$coordinates
+  #   latRng <- sapply(coords, \(x)x[[2]]) |> range()
+  #   lngRng <- sapply(coords, \(x)x[[1]]) |> range()
+  #   filter(grassland,
+  #          breite >= latRng[1] & breite <= latRng[2] &
+  #            lange >= lngRng[1] & lange <= lngRng[2])
+  # })
 
     output$scatterplot <- renderPlotly({
       
       grassland <- grassland |> rename(column_y = input$column_y) 
       grassland_inbounds <- grassland_inbounds() |> rename(column_y = input$column_y) 
-      # browser()
-      grassland |> 
-        plot_ly(x = ~meereshohe, y = ~column_y,type = "scatter", mode = "markers", marker = list(color = 'rgba(255, 182, 193, 1)'),name = "all") |> 
-        add_trace(data = grassland_inbounds, marker = list(color = "rgba(255,255,255,0)",line = list(color = "rgba(152, 0, 0, .8)", width = 2)),name = "in bounds") |> 
+      
+      if(input$aggregation %in% c("BGR","kantone")){
+        grassland <- grassland |> rename(agg = input$aggregation) 
+        grassland_inbounds <- grassland_inbounds |> rename(agg = input$aggregation) 
+        
+        fig <- plot_ly(grassland, x = ~meereshohe, y = ~column_y,type = "scatter",color = ~agg, mode = "markers") |> 
+          add_trace(data = grassland_inbounds, color = "", marker = list(color = "rgba(255,255,255,0)",line = list(color = "rgba(0, 0, 0, .8)", width = 2)),name = "in bounds")
+      } else{
+        fig <- plot_ly(grassland, x = ~meereshohe, y = ~column_y,type = "scatter", mode = "markers", marker = list(color = 'rgba(255, 182, 193, 1)'),name = "all") |> 
+          add_trace(data = grassland_inbounds, marker = list(color = "rgba(255,255,255,0)",line = list(color = "rgba(152, 0, 0, .8)", width = 2)),name = "in bounds") 
+      }
+      
+      fig |> 
         layout(
           hovermode = FALSE,
           clickmode = "none", 
           modebar  = list(
             remove = c("autoScale2d", "autoscale", "editInChartStudio", "editinchartstudio", "hoverCompareCartesian", "hovercompare", "lasso", "lasso2d", "orbitRotation", "orbitrotation", "pan", "pan2d", "pan3d", "reset", "resetCameraDefault3d", "resetCameraLastSave3d", "resetGeo", "resetSankeyGroup", "resetScale2d", "resetViewMapbox", "resetViews", "resetcameradefault", "resetcameralastsave", "resetsankeygroup", "resetscale", "resetview", "resetviews", "select", "select2d", "sendDataToCloud", "senddatatocloud", "tableRotation", "tablerotation", "toImage", "toggleHover", "toggleSpikelines", "togglehover", "togglespikelines", "toimage", "zoom", "zoom2d", "zoom3d", "zoomIn2d", "zoomInGeo", "zoomInMapbox", "zoomOut2d", "zoomOutGeo", "zoomOutMapbox", "zoomin", "zoomout", "displaylogo")
-            )
           )
+        )
 
         
         
