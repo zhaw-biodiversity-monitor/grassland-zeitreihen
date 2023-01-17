@@ -46,6 +46,11 @@ get_bivariate_group <- function(vec1, vec2, prob1 = seq(0,1,0.25), prob2 = prob1
     factor(levels =  fac_levels)
 }
 
+# from a list of datasets, select a perticular dataset based on the aggregation level and the "topic"
+select_dataset <- function(list_of_datasets, selected_aggregation, selected_dataset, sep = "_"){
+  layer_name <- paste(selected_aggregation, selected_dataset, sep = sep)
+  na.omit(list_of_datasets[[layer_name]])
+}
 
 # from here:
 # https://github.com/rstudio/gt/blob/ff878e10d21a3ba897c5f99801b796da8fb637fa/R/helpers.R#L2496-L2536
@@ -108,8 +113,12 @@ shinyServer(function(input, output) {
   })
   
   observe({
-    layer_name <- paste(input$aggregation, input$datensatz, sep = "_")
-    geodata_i <- na.omit(geodata[[layer_name]])
+    
+    
+    
+    geodata_i <- select_dataset(geodata, input$aggregation, input$datensatz)
+    
+
     ycol <- geodata_i[[input$column_y]]
     n <- geodata_i[["n"]]
 
@@ -165,6 +174,7 @@ shinyServer(function(input, output) {
     all_features <- input$map_draw_all_features
     features <- all_features$features
     coords <- map(features, \(x)x$geometry$coordinates[[1]])
+    # print(coords)
     map(coords, \(x){
       x |> 
         map(\(y)c(y[[1]],y[[2]])) |> 
@@ -182,8 +192,8 @@ shinyServer(function(input, output) {
     if(length(ranges())>0){
       # browser()
       ranges <- ranges()[[1]]
-      lat <- ranges[,1]
       lat <- ranges[,2]
+      lng <- ranges[,1]
       grassland |> 
         filter(lange > min(lng), lange < max(lng),breite > min(lat), breite < max(lat))
     
@@ -195,7 +205,20 @@ shinyServer(function(input, output) {
   
   
   
-  # observeEvent(input$map_draw_all_features,{browser()})
+  # observeEvent(input$map_shape_click,{browser()})
+  selected_object <- reactiveVal("")
+  observeEvent(input$map_shape_click,{
+    loc_list <- input$map_shape_click
+    if(input$aggregation %in% c("kantone","BGR")){
+      loc_list <- input$map_shape_click
+      geodata_i <- select_dataset(geodata, input$aggregation, input$datensatz)
+      loc <- st_point(c(loc_list$lng,loc_list$lat)) |>
+        st_sfc(crs = 4326)
+
+      selected_object(as.vector(geodata_i[loc,input$aggregation,drop = TRUE]))
+    }
+    
+  })
   
   
   
@@ -208,21 +231,51 @@ shinyServer(function(input, output) {
   #          breite >= latRng[1] & breite <= latRng[2] &
   #            lange >= lngRng[1] & lange <= lngRng[2])
   # })
+  
+  
+ 
+  
+  
+  grassland_renamed <- reactive({
+    grassland <- grassland |>
+      rename(column_y = input$column_y)
+    if(input$aggregation %in% c("BGR","kantone")){
+      grassland <- grassland |> rename(agg = input$aggregation)
+    }
+    return(grassland)
+  })
+  
+  grassland_inbounds_renamed <- reactive({
+    grassland_inbounds <- grassland_inbounds() |>
+      rename(column_y = input$column_y)
+    if(input$aggregation %in% c("BGR","kantone")){
+      grassland_inbounds <- grassland_inbounds |> rename(agg = input$aggregation)
+    }
+    return(grassland_inbounds)
+  })
+  
 
     output$scatterplot <- renderPlotly({
-      
-      grassland <- grassland |> rename(column_y = input$column_y) 
-      grassland_inbounds <- grassland_inbounds() |> rename(column_y = input$column_y) 
-      
       if(input$aggregation %in% c("BGR","kantone")){
-        grassland <- grassland |> rename(agg = input$aggregation) 
-        grassland_inbounds <- grassland_inbounds |> rename(agg = input$aggregation) 
+        if(selected_object() == ""){
+          fig <- plot_ly(grassland_renamed(), x = ~meereshohe, y = ~column_y,type = "scatter",color = ~agg, mode = "markers") |> 
+            add_trace(data = grassland_inbounds_renamed(), color = "", marker = list(color = "rgba(255,255,255,0)",line = list(color = "rgba(0, 0, 0, .8)", width = 2)),name = "in bounds") 
+        } else{
+          # browser()
+          grassland_visible <- grassland_renamed() |> 
+            mutate(
+              visible = ifelse(agg == selected_object(),TRUE,"legendonly")
+            )
+          fig_initial <- plot_ly(grassland_visible, x = ~meereshohe, y = ~column_y,type = "scatter",mode = "markers",visible = FALSE)
+          fig <- grassland_visible |> 
+            split(grassland_visible$agg) |> 
+            reduce(\(x,y)add_trace(x, data = y,visible = ~visible, name = ~agg),.init = fig_initial)
+        }
+      
         
-        fig <- plot_ly(grassland, x = ~meereshohe, y = ~column_y,type = "scatter",color = ~agg, mode = "markers") |> 
-          add_trace(data = grassland_inbounds, color = "", marker = list(color = "rgba(255,255,255,0)",line = list(color = "rgba(0, 0, 0, .8)", width = 2)),name = "in bounds")
       } else{
-        fig <- plot_ly(grassland, x = ~meereshohe, y = ~column_y,type = "scatter", mode = "markers", marker = list(color = 'rgba(255, 182, 193, 1)'),name = "all") |> 
-          add_trace(data = grassland_inbounds, marker = list(color = "rgba(255,255,255,0)",line = list(color = "rgba(152, 0, 0, .8)", width = 2)),name = "in bounds") 
+        fig <- plot_ly(grassland_renamed(), x = ~meereshohe, y = ~column_y,type = "scatter", mode = "markers", marker = list(color = 'rgba(255, 182, 193, 1)'),name = "all") |> 
+          add_trace(data = grassland_inbounds_renamed(), marker = list(color = "rgba(255,255,255,0)",line = list(color = "rgba(152, 0, 0, .8)", width = 2)),name = "in bounds") 
       }
       
       fig |> 
