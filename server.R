@@ -43,7 +43,8 @@ get_bivariate_group <-
     probs <- list(prob1, prob2)     # -> create lists to use map2
     breaks <- list(break1, break2) #
     
-    mybreaks <- map2(vecs, probs, \(x, y) quantile(x, y, na.rm = TRUE))
+    mybreaks <-
+      map2(vecs, probs, \(x, y) quantile(x, y, na.rm = TRUE))
     mybreaks[!is.na(breaks)] <- breaks[!is.na(breaks)]
     
     cuts <-
@@ -168,8 +169,6 @@ shinyServer(function(input, output) {
       sep = "<br>"
     )
     
-    
-    
     if (input$colorize == "linear") {
       colpal <- "RdBu"
       geodata_i$grp <- ycol
@@ -247,7 +246,7 @@ shinyServer(function(input, output) {
                breite < max(lat))
       
     } else{
-      grassland[FALSE,]
+      grassland[FALSE, ]
     }
   })
   
