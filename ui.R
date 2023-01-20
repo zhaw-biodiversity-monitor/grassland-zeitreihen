@@ -7,10 +7,9 @@
 #    http://shiny.rstudio.com/
 #
 
-library(shiny)
-library(plotly)
-library(sf)
-library(tidyr)
+
+source("libraries.R")
+source("utils.R")
 
 gpkg_path <- "appdata/vectors.gpkg"
 layers <- read_sf(gpkg_path, "layers_overview")
