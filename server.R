@@ -16,6 +16,19 @@ library(purrr)
 library(stringr)
 grassland <- read_csv("appdata/normallandschaft.csv")
 
+mycols <- list(
+  drawing = list(
+    rgba_string = "rgba(0, 51, 255, 1)", 
+    hex = "#0033FF"
+    ),
+  selected_polygon = c(
+    rgba_string = "rgba(255, 48, 0, 1)", 
+    hex = "#ffcc00"
+    )
+)
+
+
+
 read_all_layers <- function(file, exception = NA) {
   layer_names <- st_layers(file)$name
   layer_names <- layer_names[!(layer_names %in% exception)]
@@ -152,11 +165,17 @@ shinyServer(function(input, output) {
         markerOptions = FALSE,
         circleMarkerOptions = FALSE,
         singleFeature = TRUE,
+        rectangleOptions = drawRectangleOptions(
+          shapeOptions = drawShapeOptions(
+            color = as.character(mycols$drawing$hex),
+            fill = FALSE,
+            weight = 2
+            )
+          ),
         editOptions = editToolbarOptions()
       )
-    
+
   })
-  
   geodata_i <- reactive({geodata_i <- select_dataset(geodata, input$aggregation, input$datensatz)})
   
   observe({
@@ -220,7 +239,7 @@ shinyServer(function(input, output) {
       
       leafletProxy("map", data = geodata_i[selvec,]) |>
         clearGroup("polygonselection") |>
-        addPolygons(fillOpacity = 0,group = "polygonselection")
+        addPolygons(fillOpacity = 0,group = "polygonselection",color = mycols$selected_polygon$hex,fill = FALSE)
     }
     
   
@@ -326,14 +345,14 @@ shinyServer(function(input, output) {
         color = "",
         marker = list(
           color = "rgba(255,255,255,0)",
-          line = list(color = "rgba(0, 0, 0, .8)", width = 2)
+          line = list(color = mycols$drawing$rgba_string, width = 2)
         ),
         name = "in bounds"
       )
-    if (selected_object() != "") {
+    if (selected_object() != "" & input$aggregation %in% c("kantone", "BGR")) {
+      
       grassland_inpolygon <- grassland_renamed()[grassland_renamed()$agg == selected_object(),]
       
-      # browser()
       fig <-
         fig |>
         add_trace(
@@ -341,7 +360,7 @@ shinyServer(function(input, output) {
           color = "",
           marker = list(
             color = "rgba(255,255,255,0)",
-            line = list(color = "rgba(0, 0, 255, .8)", width = 2)
+            line = list(color = mycols$selected_polygon$rgba_string, width = 2)
           ),
           name = "in polygon"
         )
