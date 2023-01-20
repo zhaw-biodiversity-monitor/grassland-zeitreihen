@@ -4,20 +4,28 @@ library(sf)
 library(leaflet)
 library(ggplot2)
 library(dplyr)
+# install.packages("mapedit")
 library(mapedit)
-# library(leafpm)
+library(leaflet.extras)
+# install.packages("leaflet.extras")
 library(leaflet.extras)
 library(plotly)
 library(htmltools) # for htmlEscape
 library(tidyr)
 library(purrr)
-
+library(stringr)
 grassland <- read_csv("appdata/normallandschaft.csv")
 
 read_all_layers <- function(file, exception = NA){
   layer_names <- st_layers(file)$name
   layer_names <- layer_names[!(layer_names %in% exception)]
   sapply(layer_names, \(x)st_read(file, x),simplify = FALSE) 
+}
+
+clean_names <- function(str){
+  str |> 
+    str_replace("_", " ") |> 
+    str_to_title()
 }
 
 # takes two vectors (e.g. Artenreichtum and n), groups each into discrete groups 
@@ -113,12 +121,7 @@ shinyServer(function(input, output) {
   })
   
   observe({
-    
-    
-    
     geodata_i <- select_dataset(geodata, input$aggregation, input$datensatz)
-    
-
     ycol <- geodata_i[[input$column_y]]
     n <- geodata_i[["n"]]
 
@@ -206,6 +209,8 @@ shinyServer(function(input, output) {
   
   
   # observeEvent(input$map_shape_click,{browser()})
+  
+  # Makes sure that this object exists even before the first clicking event
   selected_object <- reactiveVal("")
   observeEvent(input$map_shape_click,{
     loc_list <- input$map_shape_click
@@ -215,27 +220,13 @@ shinyServer(function(input, output) {
       loc <- st_point(c(loc_list$lng,loc_list$lat)) |>
         st_sfc(crs = 4326)
 
-      selected_object(as.vector(geodata_i[loc,input$aggregation,drop = TRUE]))
+      selected_object_str <- as.vector(geodata_i[loc,input$aggregation,drop = TRUE])
+      selected_object(selected_object_str) # sets the value of this reactiveValue
     }
     
   })
   
-  
-  
-  # grassland_inbounds_drawing <- reactive({
-  #   all_features <- input$map_draw_all_features
-  #   coords <- all_features[[2]][[1]]$geometry$coordinates
-  #   latRng <- sapply(coords, \(x)x[[2]]) |> range()
-  #   lngRng <- sapply(coords, \(x)x[[1]]) |> range()
-  #   filter(grassland,
-  #          breite >= latRng[1] & breite <= latRng[2] &
-  #            lange >= lngRng[1] & lange <= lngRng[2])
-  # })
-  
-  
- 
-  
-  
+
   grassland_renamed <- reactive({
     grassland <- grassland |>
       rename(column_y = input$column_y)
@@ -269,7 +260,12 @@ shinyServer(function(input, output) {
           fig_initial <- plot_ly(grassland_visible, x = ~meereshohe, y = ~column_y,type = "scatter",mode = "markers",visible = FALSE)
           fig <- grassland_visible |> 
             split(grassland_visible$agg) |> 
-            reduce(\(x,y)add_trace(x, data = y,visible = ~visible, name = ~agg),.init = fig_initial)
+            reduce(\(x,y){
+              x |> 
+                add_trace(data = y,visible = ~visible, name = ~agg)
+                
+                
+            },.init = fig_initial)
         }
       
         
@@ -282,6 +278,7 @@ shinyServer(function(input, output) {
         layout(
           hovermode = FALSE,
           clickmode = "none", 
+          yaxis = list(title = clean_names(input$column_y)),
           modebar  = list(
             remove = c("autoScale2d", "autoscale", "editInChartStudio", "editinchartstudio", "hoverCompareCartesian", "hovercompare", "lasso", "lasso2d", "orbitRotation", "orbitrotation", "pan", "pan2d", "pan3d", "reset", "resetCameraDefault3d", "resetCameraLastSave3d", "resetGeo", "resetSankeyGroup", "resetScale2d", "resetViewMapbox", "resetViews", "resetcameradefault", "resetcameralastsave", "resetsankeygroup", "resetscale", "resetview", "resetviews", "select", "select2d", "sendDataToCloud", "senddatatocloud", "tableRotation", "tablerotation", "toImage", "toggleHover", "toggleSpikelines", "togglehover", "togglespikelines", "toimage", "zoom", "zoom2d", "zoom3d", "zoomIn2d", "zoomInGeo", "zoomInMapbox", "zoomOut2d", "zoomOutGeo", "zoomOutMapbox", "zoomin", "zoomout", "displaylogo")
           )
