@@ -91,7 +91,7 @@ shinyServer(function(input, output) {
         fillOpacity <- 0.5
       } else{
         pal_col <-
-          bivariate_matrix_alpha(mypal, nbreaks1, alpha_range = c(0.1, 0.8)) |> as.vector()
+          bivariate_matrix_alpha(mypal, nbreaks1, alpha_range = c(0.1, 1)) |> as.vector()
         pal <- colorFactor(pal_col, levels = levs, alpha = TRUE)
         fillOpacity <- 1
       }
