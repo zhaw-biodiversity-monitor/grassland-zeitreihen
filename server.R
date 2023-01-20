@@ -157,9 +157,10 @@ shinyServer(function(input, output) {
     
   })
   
+  geodata_i <- reactive({geodata_i <- select_dataset(geodata, input$aggregation, input$datensatz)})
+  
   observe({
-    geodata_i <-
-      select_dataset(geodata, input$aggregation, input$datensatz)
+    geodata_i <- geodata_i()
     ycol <- geodata_i[[input$column_y]]
     n <- geodata_i[["n"]]
     
@@ -209,6 +210,20 @@ shinyServer(function(input, output) {
         label = ~ lapply(label, htmltools::HTML)
       )
     
+  })
+  
+  observe({
+    if (input$aggregation %in% c("kantone", "BGR")) {
+      geodata_i <- geodata_i()
+      
+      selvec <- as.vector(geodata_i[,input$aggregation,drop = TRUE]) == selected_object()
+      
+      leafletProxy("map", data = geodata_i[selvec,]) |>
+        clearGroup("polygonselection") |>
+        addPolygons(fillOpacity = 0,group = "polygonselection")
+    }
+    
+  
   })
   
   
