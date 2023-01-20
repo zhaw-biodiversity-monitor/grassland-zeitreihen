@@ -15,7 +15,22 @@ library(tidyr)
 gpkg_path <- "appdata/vectors.gpkg"
 layers <- read_sf(gpkg_path, "layers_overview")
 
+col_y_options <- c(
+  "artenreichtum_gefasspflanzen",
+  "artenreichtum_neophyten",
+  "artenanteil_neophyten",
+  "deckungsanteil_neophyten",
+  "temperaturzahl",
+  "kontinentalitatszahl",
+  "feuchtezahl",
+  "reaktionszahl",
+  "nahrstoffzahl",
+  "strategie_c",
+  "strategie_r",
+  "strategie_s"
+)
 
+names(col_y_options) <- clean_names(col_y_options)
 
 # aggregation_layers <-
 #   c(
@@ -50,20 +65,7 @@ shinyUI(fluidPage(
       selectInput(
         "column_y",
         "Unabhängige Variabel 1",
-        c(
-          "artenreichtum_gefasspflanzen",
-          "artenreichtum_neophyten",
-          "artenanteil_neophyten",
-          "deckungsanteil_neophyten",
-          "temperaturzahl",
-          "kontinentalitatszahl",
-          "feuchtezahl",
-          "reaktionszahl",
-          "nahrstoffzahl",
-          "strategie_c",
-          "strategie_r",
-          "strategie_s"
-        )
+        col_y_options
       ),
       selectInput(
         "colorize",
