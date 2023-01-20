@@ -9,9 +9,9 @@ mycols <- list(
     rgba_string = "rgba(0, 51, 255, 1)", 
     hex = "#0033FF"
     ),
-  selected_polygon = c(
+  selected_polygon = list(
     rgba_string = "rgba(255, 48, 0, 1)", 
-    hex = "#ffcc00"
+    hex = "#ff3000"
     )
 )
 
