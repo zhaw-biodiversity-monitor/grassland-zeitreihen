@@ -295,72 +295,40 @@ shinyServer(function(input, output) {
   
   
   output$scatterplot <- renderPlotly({
-    if (input$aggregation %in% c("BGR", "kantone")) {
-      if (selected_object() == "") {
-        fig <-
-          plot_ly(
-            grassland_renamed(),
-            x = ~ meereshohe,
-            y = ~ column_y,
-            type = "scatter",
-            color = ~ agg,
-            mode = "markers"
-          ) |>
-          add_trace(
-            data = grassland_inbounds_renamed(),
-            color = "",
-            marker = list(
-              color = "rgba(255,255,255,0)",
-              line = list(color = "rgba(0, 0, 0, .8)", width = 2)
-            ),
-            name = "in bounds"
-          )
-      } else{
-        # browser()
-        grassland_visible <- grassland_renamed() |>
-          mutate(visible = ifelse(agg == selected_object(), TRUE, "legendonly"))
-        fig_initial <-
-          plot_ly(
-            grassland_visible,
-            x = ~ meereshohe,
-            y = ~ column_y,
-            type = "scatter",
-            mode = "markers",
-            visible = FALSE
-          )
-        fig <- grassland_visible |>
-          split(grassland_visible$agg) |>
-          reduce(\(x, y) {
-            x |>
-              add_trace(
-                data = y,
-                visible = ~ visible,
-                name = ~ agg
-              )
-            
-            
-          }, .init = fig_initial)
-      }
+    
+    fig <-
+      plot_ly(
+        grassland_renamed(),
+        x = ~ meereshohe,
+        y = ~ column_y,
+        type = "scatter",
+        mode = "markers",
+        marker = list(color = 'rgba(255, 182, 193, 1)'),
+        name = "all"
+      ) |> 
+      add_trace(
+        data = grassland_inbounds_renamed(),
+        color = "",
+        marker = list(
+          color = "rgba(255,255,255,0)",
+          line = list(color = "rgba(0, 0, 0, .8)", width = 2)
+        ),
+        name = "in bounds"
+      )
+    if (selected_object() != "") {
+      grassland_inpolygon <- grassland_renamed()[grassland_renamed()$agg == selected_object(),]
       
-      
-    } else{
+      # browser()
       fig <-
-        plot_ly(
-          grassland_renamed(),
-          x = ~ meereshohe,
-          y = ~ column_y,
-          type = "scatter",
-          mode = "markers",
-          marker = list(color = 'rgba(255, 182, 193, 1)'),
-          name = "all"
-        ) |>
+        fig |>
         add_trace(
-          data = grassland_inbounds_renamed(),
+          data = grassland_inpolygon,
+          color = "",
           marker = list(
             color = "rgba(255,255,255,0)",
-            line = list(color = "rgba(152, 0, 0, .8)", width = 2)
+            line = list(color = "rgba(0, 0, 255, .8)", width = 2)
           ),
-          name = "in bounds"
+          name = "in polygon"
         )
     }
     
