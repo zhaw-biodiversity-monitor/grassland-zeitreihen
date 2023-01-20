@@ -29,15 +29,17 @@ aggregate_grass <- function(
     by, 
     weight_col = "design_weight", 
     columns_to_weight = c("artenreichtum_gefasspflanzen", "artenreichtum_neophyten", "artenanteil_neophyten", "deckungsanteil_neophyten", "temperaturzahl", "kontinentalitatszahl", "feuchtezahl", "reaktionszahl", "nahrstoffzahl", "strategie_c", "strategie_r", "strategie_s"), 
-    columns_to_count = "_p_a", # not nice, but i will count all columns ending with p_a
+    columns_to_count = "_p_a$", # columns matching this ("matches()") will just be counted
     filter_zero_count = TRUE){
   
+  # browser()
   stopifnot(all(columns_to_weight %in%names(x)))
   stopifnot(weight_col %in% names(x))
   
   # create a tidy select that I can use with matches()
   columns_to_weight_tidy_sel <- paste(columns_to_weight, collapse = "|")
   
+  # multiply all columns that should be weighed with the weight_col
   weighted <- x[c(weight_col, columns_to_weight)] |>  # select only the weight col and the columns to weigh
     mutate(
       across(
@@ -47,9 +49,9 @@ aggregate_grass <- function(
   
   weighted_sum <- cbind(
     weighted,                                   
-    st_drop_geometry(select(x, ends_with("columns_to_count")))
+    st_drop_geometry(select(x, matches("_p_a$")))
   ) |> 
-    aggregate(by, sum, na.rm = TRUE) 
+    aggregate(by, sum, na.rm = TRUE)
   
   weighted_mean <- weighted_sum |> 
     mutate(
@@ -87,7 +89,7 @@ import_sheet <- function(xlsx, sheet){
   library(janitor)
   library(dplyr)
   read_excel(xlsx, sheet) |> 
-    clean_names() |> 
+    janitor::clean_names() |> 
     transmute(
       plot_id,
       design_weight, 
@@ -150,15 +152,15 @@ gpkg_path <- "appdata/vectors.gpkg"
 # delete_all_layers(gpkg_path)
 # lays <- read_all_layers(gpkg_path)
 
-grass_df <- imap(sheets, ~import_sheet(xlsx_path, .x))
+grass_df <- imap(sheets, \(x,y){import_sheet(xlsx_path, x)})
 
 
 
 grass_sf <- imap(grass_df, ~st_as_sf(.x, coords = c("x_lv95","y_lv95"), crs = 2056, remove = FALSE) )
 
 
-hex10 <- st_make_grid(schweiz, 10000,square = FALSE) |> st_as_sf()
-hex20 <- st_make_grid(schweiz, 20000,square = FALSE) |> st_as_sf()
+hex10 <- st_make_grid(schweiz, 10000,square = FALSE) |> st_as_sf() |> mutate(hex10 = row_number())
+hex20 <- st_make_grid(schweiz, 20000,square = FALSE) |> st_as_sf() |> mutate(hex20 = row_number())
 
 hex10_BGR <- hexagonize(hex10, BGR, DERegionNa)
 hex10_BGR_l <- imap(grass_sf, ~aggregate_grass(.x, hex10_BGR))

@@ -110,7 +110,6 @@ shinyServer(function(input, output) {
   })
   
   observe({
-    if (input$aggregation %in% c("kantone", "BGR")) {
       geodata_i <- geodata_i()
       
       selvec <- as.vector(geodata_i[,input$aggregation,drop = TRUE]) == selected_object()
@@ -142,12 +141,9 @@ shinyServer(function(input, output) {
   })
   
   grassland_inbounds <- reactive({
-    # ranges()
-    # ranges <- ranges()[[1]]
-    
-    
+
     if (length(ranges()) > 0) {
-      # browser()
+      
       ranges <- ranges()[[1]]
       lat <- ranges[, 2]
       lng <- ranges[, 1]
