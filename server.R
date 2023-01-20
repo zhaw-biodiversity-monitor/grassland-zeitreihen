@@ -118,7 +118,7 @@ shinyServer(function(input, output) {
       leafletProxy("map", data = geodata_i[selvec,]) |>
         clearGroup("polygonselection") |>
         addPolygons(fillOpacity = 0,group = "polygonselection",color = mycols$selected_polygon$hex,fill = FALSE)
-    }
+    
     
   
   })
@@ -171,7 +171,6 @@ shinyServer(function(input, output) {
   selected_object <- reactiveVal("")
   observeEvent(input$map_shape_click, {
     loc_list <- input$map_shape_click
-    if (input$aggregation %in% c("kantone", "BGR")) {
       loc_list <- input$map_shape_click
       geodata_i <-
         select_dataset(geodata, input$aggregation, input$datensatz)
@@ -181,27 +180,25 @@ shinyServer(function(input, output) {
       selected_object_str <-
         as.vector(geodata_i[loc, input$aggregation, drop = TRUE])
       selected_object(selected_object_str) # sets the value of this reactiveValue
-    }
+   
     
   })
   
   
   grassland_renamed <- reactive({
     grassland <- grassland |>
-      rename(column_y = input$column_y)
-    if (input$aggregation %in% c("BGR", "kantone")) {
-      grassland <- grassland |> rename(agg = input$aggregation)
-    }
+      rename(column_y = input$column_y)|> 
+      rename(agg = input$aggregation)
+
     return(grassland)
   })
   
   grassland_inbounds_renamed <- reactive({
     grassland_inbounds <- grassland_inbounds() |>
       rename(column_y = input$column_y)
-    if (input$aggregation %in% c("BGR", "kantone")) {
       grassland_inbounds <-
         grassland_inbounds |> rename(agg = input$aggregation)
-    }
+ 
     return(grassland_inbounds)
   })
   
@@ -227,7 +224,7 @@ shinyServer(function(input, output) {
         ),
         name = "in bounds"
       )
-    if (selected_object() != "" & input$aggregation %in% c("kantone", "BGR")) {
+    if (selected_object() != "") { 
       
       grassland_inpolygon <- grassland_renamed()[grassland_renamed()$agg == selected_object(),]
       

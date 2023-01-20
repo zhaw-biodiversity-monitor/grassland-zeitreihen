@@ -170,9 +170,11 @@ imap(hex10_kantone_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_pat
 
 hex10_l <- imap(grass_sf, ~aggregate_grass(.x, hex10))
 imap(hex10_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_path, glue("hex10_{y}"),delete_layer = TRUE)})
+grass_sf <- map(grass_sf, \(x) st_join(x, hex10))
 
 hex20_l <- imap(grass_sf, ~aggregate_grass(.x, hex20))
 imap(hex20_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_path, glue("hex20_{y}"),delete_layer = TRUE)})
+grass_sf <- map(grass_sf, \(x) st_join(x, hex20))
 
 
 BGR <- BGR |> 
