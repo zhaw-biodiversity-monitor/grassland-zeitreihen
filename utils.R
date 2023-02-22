@@ -5,9 +5,55 @@ read_all_layers <- function(file, exception = NA) {
 }
 
 clean_names <- function(str) {
+
+  # if (str_detect(str, "kontinentalitatszahl")) {
+  #    str <- "kontinentalit$tszahl"
+  # } else if (str_detect(input, "nahrstoffzahl")) {
+  #    str <- "nährstoffzahl"
+  # }
+
   str |>
     str_replace("_", " ") |>
     str_to_title()
+
+  
+}
+
+
+add_unit <- function(input, add_break = TRUE, add_brackets = TRUE){
+  unit <- if(str_detect(input, "artenreichtum")){
+    "Anzahl Arten"
+  } else if (str_detect(input, "anteil")) {
+     "Anteil zwischen 0 - 1"
+  } else if (str_detect(input, "temperaturzahl")) {
+     "T-Zahl zwischen 1 - 9"
+  } else if (str_detect(input, "kontinentalitatszahl")) {
+     "K-Zahl zwischen 1 - 9"
+  } else if (str_detect(input, "freuchtezahl")) {
+     "F-Zahl zwischen 1 - 12"
+  } else if (str_detect(input, "reaktionszahl")) {
+     "R-Zahl zwischen 1 - 9"
+  } else if (str_detect(input, "nahrstoffzahl")) {
+     "N-Zahl zwischen 1 - 9"
+  } else if (str_detect(input, "strategie_c")) {
+     "competitor"
+  } else if (str_detect(input, "strategie_s")) {
+     "stress tolerator"
+  } else if (str_detect(input, "strategie_r")) {
+     "ruderal"
+  } else{
+    ""
+  }
+
+  if(add_brackets & unit != ""){
+    unit <- paste0("(",unit,")")
+  }
+
+  if(add_break & unit != ""){
+    unit <- paste0("\n",unit)
+  }
+
+  unit
 }
 
 # from a list of datasets, select a perticular dataset based on the aggregation level and the "topic"
