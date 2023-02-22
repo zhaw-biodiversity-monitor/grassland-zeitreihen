@@ -6,13 +6,13 @@ grassland <- read_csv("appdata/normallandschaft.csv")
 
 mycols <- list(
   drawing = list(
-    rgba_string = "rgba(0, 51, 255, 1)", 
+    rgba_string = "rgba(0, 51, 255, 1)",
     hex = "#0033FF"
-    ),
+  ),
   selected_polygon = list(
-    rgba_string = "rgba(255, 48, 0, 1)", 
+    rgba_string = "rgba(255, 48, 0, 1)",
     hex = "#ff3000"
-    )
+  )
 )
 
 gpkg_path <- "appdata/vectors.gpkg"
@@ -48,29 +48,33 @@ shinyServer(function(input, output) {
             color = as.character(mycols$drawing$hex),
             fill = FALSE,
             weight = 2
-            )
-          ),
+          )
+        ),
         editOptions = editToolbarOptions()
       )
-
   })
-  geodata_i <- reactive({geodata_i <- select_dataset(geodata, input$aggregation, input$datensatz)})
-  
+  geodata_i <- reactive({
+    geodata_i <- select_dataset(geodata, input$aggregation, input$datensatz)
+  })
+
   observe({
     geodata_i <- geodata_i()
     ycol <- geodata_i[[input$column_y]]
-    n <- geodata_i[["n"]]
-    
+    n_obs <- geodata_i[["n"]]
+
     geodata_i$label <- paste(
       paste(input$column_y, round(ycol, 2), sep = ":"),
-      paste("Anzahl Erhebungen", n, sep = ":"),
+      paste("Anzahl Erhebungen", n_obs, sep = ":"),
       sep = "<br>"
     )
 
     n_classes <- 3
     # anticipate all *possible* factor levels 
+    fac_levels <- expand_grid(seq_len(n_classes),seq_len(n_classes)) |>
+      apply(1, paste, collapse = "-") 
 
     n_obs_grp <- classify_intervals(n_obs, n_classes, style = "kmeans", factor = FALSE)
+    ycol_grp <- classify_intervals(ycol, n_classes, style = "kmeans",  factor = FALSE)
 
     geodata_i$grp <- factor(paste(n_obs_grp, ycol_grp, sep = "-"),levels = fac_levels)
 
@@ -81,7 +85,7 @@ shinyServer(function(input, output) {
       as.vector()
     pal <- colorFactor(pal_col, levels = fac_levels, alpha = TRUE)
 
-
+    
 
     leafletProxy("map", data = geodata_i) |>
       clearShapes() |>
@@ -89,30 +93,26 @@ shinyServer(function(input, output) {
       addPolygons(
         fillColor = ~ pal(grp),
         color = ~ pal(grp),
-        fillOpacity = fillOpacity,
+        fillOpacity = 1,
         opacity = 0,
         label = ~ lapply(label, htmltools::HTML)
       )
-    
   })
-  
+
   observe({
-      geodata_i <- geodata_i()
-      
-      selvec <- as.vector(geodata_i[,input$aggregation,drop = TRUE]) == selected_object()
-      
-      leafletProxy("map", data = geodata_i[selvec,]) |>
-        clearGroup("polygonselection") |>
-        addPolygons(fillOpacity = 0,group = "polygonselection",color = mycols$selected_polygon$hex,fill = FALSE)
-    
-    
-  
+    geodata_i <- geodata_i()
+
+    selvec <- as.vector(geodata_i[, input$aggregation, drop = TRUE]) == selected_object()
+
+    leafletProxy("map", data = geodata_i[selvec, ]) |>
+      clearGroup("polygonselection") |>
+      addPolygons(fillOpacity = 0, group = "polygonselection", color = mycols$selected_polygon$hex, fill = FALSE)
   })
-  
-  
-  
-  
-  
+
+
+
+
+
   ranges <- reactive({
     all_features <- input$map_draw_all_features
     features <- all_features$features
@@ -124,80 +124,75 @@ shinyServer(function(input, output) {
         do.call(rbind, args = _) |>
         apply(2, range)
     })
-    
   })
-  
-  grassland_inbounds <- reactive({
 
+  grassland_inbounds <- reactive({
     if (length(ranges()) > 0) {
-      
       ranges <- ranges()[[1]]
       lat <- ranges[, 2]
       lng <- ranges[, 1]
       grassland |>
-        filter(lange > min(lng),
-               lange < max(lng),
-               breite > min(lat),
-               breite < max(lat))
-      
-    } else{
+        filter(
+          lange > min(lng),
+          lange < max(lng),
+          breite > min(lat),
+          breite < max(lat)
+        )
+    } else {
       grassland[FALSE, ]
     }
   })
-  
-  
-  
-  
+
+
+
+
   # observeEvent(input$map_shape_click,{browser()})
-  
+
   # Makes sure that this object exists even before the first clicking event
   selected_object <- reactiveVal("")
   observeEvent(input$map_shape_click, {
     loc_list <- input$map_shape_click
-      loc_list <- input$map_shape_click
-      geodata_i <-
-        select_dataset(geodata, input$aggregation, input$datensatz)
-      loc <- st_point(c(loc_list$lng, loc_list$lat)) |>
-        st_sfc(crs = 4326)
-      
-      selected_object_str <-
-        as.vector(geodata_i[loc, input$aggregation, drop = TRUE])
-      selected_object(selected_object_str) # sets the value of this reactiveValue
-   
-    
+    loc_list <- input$map_shape_click
+    geodata_i <-
+      select_dataset(geodata, input$aggregation, input$datensatz)
+    loc <- st_point(c(loc_list$lng, loc_list$lat)) |>
+      st_sfc(crs = 4326)
+
+    selected_object_str <-
+      as.vector(geodata_i[loc, input$aggregation, drop = TRUE])
+    selected_object(selected_object_str) # sets the value of this reactiveValue
   })
-  
-  
+
+
   grassland_renamed <- reactive({
     grassland <- grassland |>
-      rename(column_y = input$column_y)|> 
+      rename(column_y = input$column_y) |>
       rename(agg = input$aggregation)
 
     return(grassland)
   })
-  
+
   grassland_inbounds_renamed <- reactive({
     grassland_inbounds <- grassland_inbounds() |>
       rename(column_y = input$column_y)
-      grassland_inbounds <-
-        grassland_inbounds |> rename(agg = input$aggregation)
- 
+    grassland_inbounds <-
+      grassland_inbounds |> rename(agg = input$aggregation)
+
     return(grassland_inbounds)
   })
-  
-  
+
+
   output$scatterplot <- renderPlotly({
-    
     fig <-
       plot_ly(
         grassland_renamed(),
-        x = ~ meereshohe,
-        y = ~ column_y,
+        x = ~meereshohe,
+        y = ~column_y,
         type = "scatter",
         mode = "markers",
-        marker = list(color = 'rgba(255, 182, 193, 1)'),
+        marker = list(color = "rgba(255, 182, 193, 1)"),
         name = "all"
-      ) |> 
+      ) |>
       add_trace(
         data = grassland_inbounds_renamed(),
         color = "",
@@ -207,10 +202,9 @@ shinyServer(function(input, output) {
         ),
         name = "in bounds"
       )
-    if (selected_object() != "") { 
-      
-      grassland_inpolygon <- grassland_renamed()[grassland_renamed()$agg == selected_object(),]
-      
+    if (selected_object() != "") {
+      grassland_inpolygon <- grassland_renamed()[grassland_renamed()$agg == selected_object(), ]
+
       fig <-
         fig |>
         add_trace(
@@ -223,13 +217,13 @@ shinyServer(function(input, output) {
           name = "in polygon"
         )
     }
-    
+
     fig |>
       layout(
         hovermode = FALSE,
         clickmode = "none",
         yaxis = list(title = clean_names(input$column_y)),
-        modebar  = list(
+        modebar = list(
           remove = c(
             "autoScale2d",
             "autoscale",
@@ -285,8 +279,5 @@ shinyServer(function(input, output) {
           )
         )
       )
-    
-    
-    
   })
 })
