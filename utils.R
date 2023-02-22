@@ -10,49 +10,6 @@ clean_names <- function(str) {
     str_to_title()
 }
 
-# takes two vectors (e.g. Artenreichtum and n), groups each into discrete groups
-# by quantile (probs), and returns a group index which can be used to colorize
-# using a bivarate scale
-get_bivariate_group <-
-  function(vec1,
-           vec2,
-           prob1 = seq(0, 1, 0.25),
-           prob2 = prob1,
-           break1 = NA,
-           break2 = NA) {
-    stopifnot(length(vec1) == length(vec2))
-    vecs <- list(vec1, vec2)       #
-    probs <- list(prob1, prob2)     # -> create lists to use map2
-    breaks <- list(break1, break2) #
-    
-    mybreaks <-
-      map2(vecs, probs, \(x, y) quantile(x, y, na.rm = TRUE))
-    mybreaks[!is.na(breaks)] <- breaks[!is.na(breaks)]
-    
-    cuts <-
-      map2(vecs,
-           mybreaks,
-           \(x, y)cut(
-             x,
-             y,
-             include.lowest = TRUE,
-             dig.lab = 10,
-             labels = FALSE
-           ))
-    
-    # Get all *possible* factor levels (even those not in the data)
-    
-    fac_levels <- map(lengths(mybreaks) - 1, seq_len) |>
-      expand.grid() |>
-      apply(1, paste, collapse = "-") |>
-      sort()
-    do.call(cbind, cuts) |>
-      apply(1, \(x) {
-        paste(x, collapse = "-")
-      }) |>
-      factor(levels =  fac_levels)
-  }
-
 # from a list of datasets, select a perticular dataset based on the aggregation level and the "topic"
 select_dataset <-
   function(list_of_datasets,
@@ -104,4 +61,5 @@ bivariate_matrix_alpha <-
     sapply(alpha_seq, function(alpha) {
       apply(rgb_mat, 2, \(x) rgb(x[1], x[2], x[3], alpha))
     })
+
   }
