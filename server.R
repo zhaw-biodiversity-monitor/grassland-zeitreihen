@@ -67,23 +67,20 @@ shinyServer(function(input, output) {
       sep = "<br>"
     )
 
-    colpal <- "RdBu"
-    geodata_i$grp <- ycol
+    n_classes <- 3
+    # anticipate all *possible* factor levels 
 
-    pal <- colorNumeric(colpal, geodata_i$grp, reverse = TRUE)
+    n_obs_grp <- classify_intervals(n_obs, n_classes, style = "kmeans", factor = FALSE)
 
-    fillOpacity <- 0.5
-    prob2 <- seq(0, 1, .25)
-    nbreaks2 <- length(prob2) - 1
-    break1 <- c(0, 2, 5, Inf)
-    nbreaks1 <- length(break1) - 1
-    geodata_i$grp <-
-      get_bivariate_group(n, ycol, prob2 = prob2, break1 = break1)
-    mypal <- rev(RColorBrewer::brewer.pal(nbreaks2, "RdBu"))
-    levs <- levels(geodata_i$grp)
-    pal_col <- 
-    pal <- colorFactor(pal_col, levels = levs, alpha = TRUE)
-    fillOpacity <- 1
+    geodata_i$grp <- factor(paste(n_obs_grp, ycol_grp, sep = "-"),levels = fac_levels)
+
+
+    # mypal <- rev(RColorBrewer::brewer.pal(n_classes, "RdYlBu"))
+    mypal <- c("#91BFDB","#FFFFBF","#FC8D59")
+    pal_col <- bivariate_matrix_alpha(mypal,n_classes, alpha_range = c(.20, 0.80))  |>
+      as.vector()
+    pal <- colorFactor(pal_col, levels = fac_levels, alpha = TRUE)
+
 
 
     leafletProxy("map", data = geodata_i) |>
