@@ -1,0 +1,29 @@
+.rotate {
+    writing-mode: vertical-lr;
+    -webkit-transform: rotate(-180deg);
+    -moz-transform: rotate(-180deg);
+}
+
+.val {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.tooltip {
+    visibility: hidden;
+    top: 50%;
+}
+
+.val:hover .tooltip {
+    visibility: visible;
+}
+
+.container{
+    display: grid; 
+    grid-template-columns: 1fr 5fr; 
+}
+
+.matrix{
+    display: grid; 
+}

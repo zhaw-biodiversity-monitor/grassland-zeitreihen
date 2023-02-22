@@ -69,27 +69,37 @@ shinyServer(function(input, output) {
     )
 
     n_classes <- 3
-    # anticipate all *possible* factor levels 
-    fac_levels <- expand_grid(seq_len(n_classes),seq_len(n_classes)) |>
-      apply(1, paste, collapse = "-") 
+    # anticipate all *possible* factor levels
+    fac_levels <- expand_grid(seq_len(n_classes), seq_len(n_classes)) |>
+      apply(1, paste, collapse = "-")
 
-    n_obs_grp <- classify_intervals(n_obs, n_classes, style = "kmeans", factor = FALSE)
-    ycol_grp <- classify_intervals(ycol, n_classes, style = "kmeans",  factor = FALSE)
+    n_obs_interval <- classIntervals(n_obs, n_classes, "jenks")
+    ycol_interval <- classIntervals(ycol, n_classes, "jenks")
 
-    geodata_i$grp <- factor(paste(n_obs_grp, ycol_grp, sep = "-"),levels = fac_levels)
+
+    n_obs_grp <- findCols(n_obs_interval)
+    ycol_grp <- findCols(ycol_interval)
+
+    geodata_i$grp <- factor(paste(n_obs_grp, ycol_grp, sep = "-"), levels = fac_levels)
+
+
+
 
 
     # mypal <- rev(RColorBrewer::brewer.pal(n_classes, "RdYlBu"))
-    mypal <- c("#91BFDB","#FFFFBF","#FC8D59")
-    pal_col <- bivariate_matrix_alpha(mypal,n_classes, alpha_range = c(.20, 0.80))  |>
-      as.vector()
-    pal <- colorFactor(pal_col, levels = fac_levels, alpha = TRUE)
+    mypal <- c("#91BFDB", "#FFFFBF", "#FC8D59")
 
-    
+    bivariate_matrix <- bivariate_matrix_alpha(mypal, n_classes, alpha_range = c(.20, 0.80))
+
+    legend_html <- create_legend(bivariate_matrix)
+
+    pal_col <- as.vector(bivariate_matrix)
+    pal <- colorFactor(pal_col, levels = fac_levels, alpha = TRUE)
 
     leafletProxy("map", data = geodata_i) |>
       clearShapes() |>
       clearControls() |>
+      addControl(legend_html, position = "bottomleft", className = "info") |>
       addPolygons(
         fillColor = ~ pal(grp),
         color = ~ pal(grp),
@@ -222,7 +232,7 @@ shinyServer(function(input, output) {
       layout(
         hovermode = FALSE,
         clickmode = "none",
-        yaxis = list(title = paste0(clean_names(input$column_y),add_unit(input$column_y))),
+        yaxis = list(title = paste0(clean_names(input$column_y), add_unit(input$column_y))),
         xaxis = list(title = "Meereshöhe (m.ü.M.)"),
         modebar = list(
           remove = c(

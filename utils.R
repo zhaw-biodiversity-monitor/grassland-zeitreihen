@@ -5,7 +5,6 @@ read_all_layers <- function(file, exception = NA) {
 }
 
 clean_names <- function(str) {
-
   # if (str_detect(str, "kontinentalitatszahl")) {
   #    str <- "kontinentalit$tszahl"
   # } else if (str_detect(input, "nahrstoffzahl")) {
@@ -15,42 +14,40 @@ clean_names <- function(str) {
   str |>
     str_replace("_", " ") |>
     str_to_title()
-
-  
 }
 
 
-add_unit <- function(input, add_break = TRUE, add_brackets = TRUE){
-  unit <- if(str_detect(input, "artenreichtum")){
+add_unit <- function(input, add_break = TRUE, add_brackets = TRUE) {
+  unit <- if (str_detect(input, "artenreichtum")) {
     "Anzahl Arten"
   } else if (str_detect(input, "anteil")) {
-     "Anteil zwischen 0 - 1"
+    "Anteil zwischen 0 - 1"
   } else if (str_detect(input, "temperaturzahl")) {
-     "T-Zahl zwischen 1 - 9"
+    "T-Zahl zwischen 1 - 9"
   } else if (str_detect(input, "kontinentalitatszahl")) {
-     "K-Zahl zwischen 1 - 9"
+    "K-Zahl zwischen 1 - 9"
   } else if (str_detect(input, "freuchtezahl")) {
-     "F-Zahl zwischen 1 - 12"
+    "F-Zahl zwischen 1 - 12"
   } else if (str_detect(input, "reaktionszahl")) {
-     "R-Zahl zwischen 1 - 9"
+    "R-Zahl zwischen 1 - 9"
   } else if (str_detect(input, "nahrstoffzahl")) {
-     "N-Zahl zwischen 1 - 9"
+    "N-Zahl zwischen 1 - 9"
   } else if (str_detect(input, "strategie_c")) {
-     "competitor"
+    "competitor"
   } else if (str_detect(input, "strategie_s")) {
-     "stress tolerator"
+    "stress tolerator"
   } else if (str_detect(input, "strategie_r")) {
-     "ruderal"
-  } else{
+    "ruderal"
+  } else {
     ""
   }
 
-  if(add_brackets & unit != ""){
-    unit <- paste0("(",unit,")")
+  if (add_brackets & unit != "") {
+    unit <- paste0("(", unit, ")")
   }
 
-  if(add_break & unit != ""){
-    unit <- paste0("\n",unit)
+  if (add_break & unit != "") {
+    unit <- paste0("\n", unit)
   }
 
   unit
@@ -76,7 +73,7 @@ adjust_luminance <- function(colors, steps) {
   luv_matrix <-
     grDevices::convertColor(rgb_matrix[, 1:3], "sRGB", "Luv")
   h <- atan2(luv_matrix[, "v"], luv_matrix[, "u"]) * 180 / pi
-  c <- sqrt(luv_matrix[, "u"] ^ 2 + luv_matrix[, "v"] ^ 2)
+  c <- sqrt(luv_matrix[, "u"]^2 + luv_matrix[, "v"]^2)
   l <- luv_matrix[, "L"]
   y <- l / 100.
   x <- log(-(y / (y - 1)))
@@ -103,9 +100,50 @@ bivariate_matrix_alpha <-
     a_from <- alpha_range[1]
     a_to <- alpha_range[2]
     alpha_seq <- seq(a_from, a_to, (a_to - a_from) / (n - 1))
-    
+
     sapply(alpha_seq, function(alpha) {
       apply(rgb_mat, 2, \(x) rgb(x[1], x[2], x[3], alpha))
     })
-
   }
+
+
+
+create_legend <- function(bivariate_matrix, include_css = "www/mycss.css") {
+
+
+  stopifnot(nrow(bivariate_matrix) == ncol(bivariate_matrix))
+  n_classes <- nrow(bivariate_matrix)
+
+  bivariate_matrix_df <- tibble(
+    colour = as.vector(bivariate_matrix),
+    row = rep(seq_len(n_classes), times = n_classes),
+    col = rep(seq_len(n_classes), each = n_classes)
+  ) |>
+    arrange(row)
+  row_col_style <- bivariate_matrix_df |>
+    pmap_chr(\(colour, row, col){
+      paste0(".row-", row, ".col-", col, "{", "background-color: ", colour, ";", "}")
+    }) |>
+    paste(collapse = " ") |>
+    tags$style()
+
+
+
+  y_axis_div <- tags$div(class = "rotate", "Attribute Y →")
+  matrix_div <- bivariate_matrix_df |>
+    pmap(\(colour, row, col){
+      tags$div(tags$div(paste(row, col, sep = "-"), class = "tooltip"), class = c("val", paste0("row-", row), paste0("col-", col)))
+    }) |>
+    tags$div(class = "matrix", style = "grid-template-columns: repeat(3, 50px); grid-auto-rows: 50px") #hardcoded, remove
+
+  empty_div <- tags$div()
+  x_axis_div <- tags$div("# of Observations→")
+
+
+
+  tags$html(
+    includeCSS(include_css),
+    row_col_style,
+    tags$div(y_axis_div, matrix_div, empty_div, x_axis_div, class = "container"),
+  )
+}

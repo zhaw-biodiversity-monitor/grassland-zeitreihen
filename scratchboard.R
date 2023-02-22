@@ -7,15 +7,14 @@ read_all_layers <- function(file){
 
 geodata <- read_all_layers("appdata//vectors.gpkg")
 
-geodata_i <- geodata$hex10_tww
+geodata_i <- geodata$hex20_tww
 
 
 geodata_i$grp <- get_bivariate_group(vec1 = geodata_i$artenreichtum_gefasspflanzen, vec2 = geodata_i$n)
 
 leaflet(geodata_i) |> 
   clearShapes() |> 
-  clearControls() |> 
-  polylay()
+  clearControls()
   
 
 levels(hoehe)
