@@ -81,7 +81,7 @@ shinyServer(function(input, output) {
       get_bivariate_group(n, ycol, prob2 = prob2, break1 = break1)
     mypal <- rev(RColorBrewer::brewer.pal(nbreaks2, "RdBu"))
     levs <- levels(geodata_i$grp)
-    pal_col <- bivariate_matrix_alpha(mypal, nbreaks1, alpha_range = c(0.1, 1)) |> as.vector()
+    pal_col <- 
     pal <- colorFactor(pal_col, levels = levs, alpha = TRUE)
     fillOpacity <- 1
 
