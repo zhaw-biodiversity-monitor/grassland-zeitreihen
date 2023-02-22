@@ -66,14 +66,7 @@ shinyUI(fluidPage(
         "Unabhängige Variabel 1",
         col_y_options
       ),
-      selectInput(
-        "colorize",
-        "Farbskala",
-        c(
-          "Graduell" = "linear",
-          "Bivariate" = c("Intensität" = "intensity", "Durchsichtigkeit" = "alpha")
-        )
-      ),
+
       plotlyOutput("scatterplot"),
     ),
     

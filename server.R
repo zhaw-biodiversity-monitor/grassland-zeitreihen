@@ -66,36 +66,26 @@ shinyServer(function(input, output) {
       paste("Anzahl Erhebungen", n, sep = ":"),
       sep = "<br>"
     )
-    
-    if (input$colorize == "linear") {
-      colpal <- "RdBu"
-      geodata_i$grp <- ycol
-      
-      pal <- colorNumeric(colpal, geodata_i$grp, reverse = TRUE)
-      
-      fillOpacity <- 0.5
-    } else {
-      prob2 <- seq(0, 1, .25)
-      nbreaks2 <- length(prob2) - 1
-      break1 <- c(0, 2, 5, Inf)
-      nbreaks1 <- length(break1) - 1
-      geodata_i$grp <-
-        get_bivariate_group(n, ycol, prob2 = prob2, break1 = break1)
-      mypal <- rev(RColorBrewer::brewer.pal(nbreaks2, "RdBu"))
-      levs <- levels(geodata_i$grp)
-      
-      if (input$colorize == "intensity") {
-        pal_col <-
-          bivariate_matrix_luminocity(mypal, nbreaks1) |> as.vector()
-        pal <- colorFactor(pal_col, levels = levs, alpha = FALSE)
-        fillOpacity <- 0.5
-      } else{
-        pal_col <-
-          bivariate_matrix_alpha(mypal, nbreaks1, alpha_range = c(0.1, 1)) |> as.vector()
-        pal <- colorFactor(pal_col, levels = levs, alpha = TRUE)
-        fillOpacity <- 1
-      }
-    }
+
+    colpal <- "RdBu"
+    geodata_i$grp <- ycol
+
+    pal <- colorNumeric(colpal, geodata_i$grp, reverse = TRUE)
+
+    fillOpacity <- 0.5
+    prob2 <- seq(0, 1, .25)
+    nbreaks2 <- length(prob2) - 1
+    break1 <- c(0, 2, 5, Inf)
+    nbreaks1 <- length(break1) - 1
+    geodata_i$grp <-
+      get_bivariate_group(n, ycol, prob2 = prob2, break1 = break1)
+    mypal <- rev(RColorBrewer::brewer.pal(nbreaks2, "RdBu"))
+    levs <- levels(geodata_i$grp)
+    pal_col <- bivariate_matrix_alpha(mypal, nbreaks1, alpha_range = c(0.1, 1)) |> as.vector()
+    pal <- colorFactor(pal_col, levels = levs, alpha = TRUE)
+    fillOpacity <- 1
+
+
     leafletProxy("map", data = geodata_i) |>
       clearShapes() |>
       clearControls() |>
