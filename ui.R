@@ -17,35 +17,24 @@ aggregation1 <- unique(layers$aggregation1)
 aggregation1 <- aggregation1[aggregation1 != "layers"]
 
 col_y_options <- c(
-  "artenreichtum_gefasspflanzen",
-  "artenreichtum_neophyten",
-  "artenanteil_neophyten",
-  "deckungsanteil_neophyten",
+  "artenzahl",
+  "relative_artenzahl",
+  "shannon_index",
+  "shannon_evenness",
   "temperaturzahl",
   "kontinentalitatszahl",
+  "lichtzahl",
   "feuchtezahl",
   "reaktionszahl",
   "nahrstoffzahl",
-  "strategie_c",
-  "strategie_r",
-  "strategie_s"
+  "humuszahl",
+  "konkurrenzzahl",
+  "ruderalzahl",
+  "stresszahl",
+  "mahdvertraglichkeit"
 )
 
 names(col_y_options) <- clean_names(col_y_options)
-
-# aggregation_layers <-
-#   c(
-#    "Hexagon 10km" = "grass_hex10km",
-#    "Hexagon 5km" = "grass_hex5km",
-#    "Hexagon 20km" = "grass_hex20km",
-#    "Biogeografische Regionen" = "grass_biogreg",
-#    "Kantone" = "grass_kantone",
-#    "Kantone x Biogeografische Regionen" = "grass_kantone_biogreg",
-#    "Biogeografische Regionen x Hexagon 10km" = "grass_hex10km_biogreg",
-#    "Kantone x Hexagon 10km"= "grass_hex10km_kantone"
-#     # "Biogeografische Regionen",
-#    # "Kantone"
-#   )
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
@@ -57,7 +46,7 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
       # sliderInput("hoehenstufe", "Höhenstufe:", min = 0, max = 3000, value = c(0,3000)),
-      selectInput("datensatz", "Datensatz", unique(layers$dataset)),
+      # selectInput("datensatz", "Datensatz", unique(layers$dataset)),
       selectInput(
         "aggregation",
         "Aggregation",

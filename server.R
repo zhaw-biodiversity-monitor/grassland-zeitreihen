@@ -2,7 +2,7 @@
 source("libraries.R")
 source("utils.R")
 
-grassland <- read_csv("appdata/normallandschaft.csv")
+grassland <- read_csv("appdata/resurvey.csv")
 
 mycols <- list(
   drawing = list(
@@ -16,7 +16,10 @@ mycols <- list(
 )
 
 gpkg_path <- "appdata/vectors.gpkg"
-geodata <- read_all_layers(gpkg_path, "layers_overview")
+
+layers <- st_layers(gpkg_path)$name
+
+geodata <- sapply(layers[endsWith(layers, "resurvey" )], \(x)st_read(gpkg_path, x), simplify = FALSE)
 
 shinyServer(function(input, output) {
   output$map <- renderLeaflet({
@@ -54,7 +57,7 @@ shinyServer(function(input, output) {
       )
   })
   geodata_i <- reactive({
-    geodata_i <- select_dataset(geodata, input$aggregation, input$datensatz)
+    geodata[[paste0(input$aggregation, "_resurvey")]]
   })
 
   observe({
@@ -62,11 +65,12 @@ shinyServer(function(input, output) {
     ycol <- geodata_i[[input$column_y]]
     n_obs <- geodata_i[["n"]]
 
-    geodata_i$label <- paste(
-      paste(input$column_y, round(ycol, 2), sep = ":"),
-      paste("Anzahl Erhebungen", n_obs, sep = ":"),
-      sep = "<br>"
-    )
+    geodata_i$label <- "placeholder" # todo: replace
+    # paste(
+      # paste(input$column_y, round(ycol, 2), sep = ":"),
+      # paste("Anzahl Erhebungen", n_obs, sep = ":"),
+      # sep = "<br>"
+    # )
 
     n_classes <- 3
     # anticipate all *possible* factor levels
@@ -111,8 +115,9 @@ shinyServer(function(input, output) {
 
   observe({
     geodata_i <- geodata_i()
-
-    selvec <- as.vector(geodata_i[, input$aggregation, drop = TRUE]) == selected_object()
+    # selvec <- as.vector(geodata_i[, input$aggregation, drop = TRUE]) == selected_object()
+    selvec <- geodata_i$sel <- TRUE
+    # todo: add hex10, hex20 etc columns to enable selection
 
     leafletProxy("map", data = geodata_i[selvec, ]) |>
       clearGroup("polygonselection") |>
@@ -176,8 +181,8 @@ shinyServer(function(input, output) {
 
   grassland_renamed <- reactive({
     grassland <- grassland |>
-      rename(column_y = input$column_y) |>
-      rename(agg = input$aggregation)
+      rename(column_y = input$column_y) #|>
+      # rename(agg = input$aggregation)
 
     return(grassland)
   })
@@ -186,7 +191,7 @@ shinyServer(function(input, output) {
     grassland_inbounds <- grassland_inbounds() |>
       rename(column_y = input$column_y)
     grassland_inbounds <-
-      grassland_inbounds |> rename(agg = input$aggregation)
+      grassland_inbounds #|> rename(agg = input$aggregation)
 
     return(grassland_inbounds)
   })
@@ -196,7 +201,7 @@ shinyServer(function(input, output) {
     fig <-
       plot_ly(
         grassland_renamed(),
-        x = ~meereshohe,
+        x = ~jahr,
         y = ~column_y,
         type = "scatter",
         mode = "markers",
@@ -233,7 +238,7 @@ shinyServer(function(input, output) {
         hovermode = FALSE,
         clickmode = "none",
         yaxis = list(title = paste0(clean_names(input$column_y), add_unit(input$column_y))),
-        xaxis = list(title = "Meereshöhe (m.ü.M.)"),
+        xaxis = list(title = "Jahreszahl"),
         modebar = list(
           remove = c(
             "autoScale2d",

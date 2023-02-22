@@ -13,6 +13,10 @@ delete_all_layers <- function(file){
   sapply(st_layers(file)$name, \(x)st_delete(file, x),simplify = FALSE) 
 }
 
+
+
+
+
 hexagonize <- function(hex, to_be_hexagonized, ..., .na_omit = TRUE, .do_union = TRUE){
   joined <- st_join(hex, select(to_be_hexagonized, ...), largest = TRUE)
   if(.na_omit) joined <- na.omit(joined)
@@ -60,8 +64,7 @@ aggregate_grass <- function(
         function(z){z/weighted_sum[[weight_col]]})
     ) 
   
-  # agg_fun <- aggregate(x_weighted, by, FUN = FUN)
-  # agg_fun$n <- 
+
   weighted_mean$n <- aggregate(transmute(x, n = 1), by, FUN = length) |> st_drop_geometry() |> (\(x) x[,1])()
   
   weighted_mean <- weighted_mean|> 
@@ -130,6 +133,49 @@ import_sheet <- function(xlsx, sheet){
 }
 
 
+resurvey <- read_xlsx("grassland-data-raw/Dashboard_Resurveys_v.01.xlsx", "Header prepared")
+
+id_cols <- c("Observation.ID","Unique.Plot.ID"	,"Dataset.ID"	,"Plot.ID")
+independen_vars <- c("Fläche [m²]","Jahr")
+dependen_vars <- c("Artenzahl",
+"Relative Artenzahl",
+"Shannon-Index",
+"Shannon-Evenness",
+"Temperaturzahl",
+"Kontinentalitätszahl",
+"Lichtzahl",
+"Feuchtezahl",
+"Reaktionszahl",
+"Nahrstoffzahl",
+"Humuszahl",
+"Konkurrenzzahl",
+"Ruderalzahl",
+"Stresszahl",
+"Mahdverträglichkeit")
+coordinate_cols <- c("X-Koordinate", "Y-Koordinate")
+
+
+id_cols %in% colnames(resurvey) |> all()
+independen_vars %in% colnames(resurvey) |> all()
+id_cols %in% colnames(resurvey) |> all()
+dependen_vars %in% colnames(resurvey) |> all()
+coordinate_cols %in% colnames(resurvey) |> all()
+
+resurvey_clean <- resurvey[,c(id_cols,independen_vars,dependen_vars, coordinate_cols)]  |>
+  filter(if_any(matches(coordinate_cols), \(x)!is.na(x))) |>
+  st_as_sf(coords = coordinate_cols, crs = 2056) |>
+  janitor::clean_names()
+
+
+cbind(
+  st_drop_geometry(resurvey_clean),
+  st_coordinates(resurvey_clean)
+) |>
+write_csv("appdata/resurvey.csv")
+
+
+
+
 
 BGR <- read_sf("grassland-data-raw/biogreg/BiogeographischeRegionen/N2020_Revision_BiogeoRegion.shp") |>
     st_zm() 
@@ -164,18 +210,22 @@ hex20 <- st_make_grid(schweiz, 20000,square = FALSE) |> st_as_sf() |> mutate(hex
 
 hex10_BGR <- hexagonize(hex10, BGR, DERegionNa)
 hex10_BGR_l <- imap(grass_sf, ~aggregate_grass(.x, hex10_BGR))
-imap(hex10_BGR_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_path, glue("hex10_BGR_{y}"),delete_layer = TRUE)})
+imap(hex10_BGR_l, function(x,y){x |> st_transform(4326) |> 
+  write_sf(gpkg_path, glue("hex10_BGR_{y}"),delete_layer = TRUE)})
 
 hex10_kantone <- hexagonize(hex10,kantone, NAME)
 hex10_kantone_l <- imap(grass_sf, ~aggregate_grass(.x, hex10_kantone))
-imap(hex10_kantone_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_path, glue("hex10_kantone_{y}"),delete_layer = TRUE)})
+imap(hex10_kantone_l, function(x,y){x |> st_transform(4326) |> 
+  write_sf(gpkg_path, glue("hex10_kantone_{y}"),delete_layer = TRUE)})
 
 hex10_l <- imap(grass_sf, ~aggregate_grass(.x, hex10))
-imap(hex10_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_path, glue("hex10_{y}"),delete_layer = TRUE)})
+imap(hex10_l, function(x,y){x |> st_transform(4326) |> 
+  write_sf(gpkg_path, glue("hex10_{y}"),delete_layer = TRUE)})
 grass_sf <- map(grass_sf, \(x) st_join(x, hex10))
 
 hex20_l <- imap(grass_sf, ~aggregate_grass(.x, hex20))
-imap(hex20_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_path, glue("hex20_{y}"),delete_layer = TRUE)})
+imap(hex20_l, function(x,y){x |> st_transform(4326) |> 
+  write_sf(gpkg_path, glue("hex20_{y}"),delete_layer = TRUE)})
 grass_sf <- map(grass_sf, \(x) st_join(x, hex20))
 
 
@@ -197,13 +247,35 @@ kantone_l <- imap(grass_sf, ~aggregate_grass(.x, kantone))
 imap(kantone_l, function(x,y){x |> st_transform(4326) |> write_sf(gpkg_path, glue("kantone_{y}"),delete_layer = TRUE)})
 grass_sf <- map(grass_sf, \(x) st_join(x, kantone))
 
+
+aggregate_resurvey <- function(resuvey, by){
+  by_resuvey <- aggregate(resuvey, by, FUN = mean,na.rm = TRUE)
+  by_resuvey$n <- aggregate(resuvey[,1], by, FUN = length) |>
+    st_drop_geometry() |> 
+    (\(x) x[,1])()
+
+    by_resuvey
+}
+
+hex10_resurvey <- aggregate_resurvey(resurvey_clean, hex10) |> st_transform(4326)
+hex20_resurvey <- aggregate_resurvey(resurvey_clean, hex20) |> st_transform(4326)
+bgr_resurvey <- aggregate_resurvey(resurvey_clean, BGR) |> st_transform(4326)
+kantone_resurvey <- aggregate_resurvey(resurvey_clean, kantone) |> st_transform(4326)
+
+write_sf(hex10_resurvey, gpkg_path, "hex10_resurvey", delete_layer = TRUE)
+write_sf(hex20_resurvey, gpkg_path, "hex20_resurvey", delete_layer = TRUE)
+write_sf(bgr_resurvey, gpkg_path, "bgr_resurvey", delete_layer = TRUE)
+write_sf(kantone_resurvey, gpkg_path, "kantone_resurvey", delete_layer = TRUE)
+
+
+
 layers <- tibble(layer_name = st_layers(gpkg_path)$name)
 
 layers <- layers |> 
   extract(layer_name,c("aggregation","dataset"),"(\\w+)_(\\w+)",remove = FALSE) |> 
   separate(aggregation, c("aggregation1","aggregation2"),sep = "_",fill = "right")
 
-write_sf(layers, gpkg_path, "layers_overview")
+write_sf(layers, gpkg_path, "layers_overview",  delete_layer = TRUE)
 
 
 

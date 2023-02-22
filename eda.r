@@ -96,4 +96,8 @@ colnames(grass)
 rowSums(grass_arten_m,na.rm = TRUE)
 
 
+resurvey <- read_xlsx("grassland-data-raw/Dashboard_Resurveys_v.01.xlsx", "Header prepared")
 
+
+hist(resurvey$Jahr)
+  
