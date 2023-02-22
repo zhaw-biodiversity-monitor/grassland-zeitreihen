@@ -60,12 +60,12 @@ shinyUI(fluidPage(
       selectInput("datensatz", "Datensatz", unique(layers$dataset)),
       selectInput(
         "aggregation",
-        "Aggregationsstufe",
+        "Aggregation",
         aggregation1
       ),
       selectInput(
         "column_y",
-        "Unabhängige Variabel 1",
+        "Unabhängige Variabel",
         col_y_options
       ),
 
