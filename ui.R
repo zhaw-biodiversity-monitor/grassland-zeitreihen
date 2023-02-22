@@ -13,6 +13,8 @@ source("utils.R")
 
 gpkg_path <- "appdata/vectors.gpkg"
 layers <- read_sf(gpkg_path, "layers_overview")
+aggregation1 <- unique(layers$aggregation1)
+aggregation1 <- aggregation1[aggregation1 != "layers"]
 
 col_y_options <- c(
   "artenreichtum_gefasspflanzen",
@@ -59,7 +61,7 @@ shinyUI(fluidPage(
       selectInput(
         "aggregation",
         "Aggregationsstufe",
-        unique(layers$aggregation1)
+        aggregation1
       ),
       selectInput(
         "column_y",
