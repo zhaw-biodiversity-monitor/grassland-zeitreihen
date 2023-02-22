@@ -90,8 +90,8 @@ shinyServer(function(input, output) {
     mypal <- c("#91BFDB", "#FFFFBF", "#FC8D59")
 
     bivariate_matrix <- bivariate_matrix_alpha(mypal, n_classes, alpha_range = c(.20, 0.80))
-
-    legend_html <- create_legend(bivariate_matrix)
+    # browser()
+    legend_html <- create_legend(bivariate_matrix,clean_names(input$column_y))
 
     pal_col <- as.vector(bivariate_matrix)
     pal <- colorFactor(pal_col, levels = fac_levels, alpha = TRUE)
@@ -99,7 +99,7 @@ shinyServer(function(input, output) {
     leafletProxy("map", data = geodata_i) |>
       clearShapes() |>
       clearControls() |>
-      addControl(legend_html, position = "bottomleft", className = "info") |>
+      addControl(legend_html, position = "bottomleft", className = "") |>
       addPolygons(
         fillColor = ~ pal(grp),
         color = ~ pal(grp),

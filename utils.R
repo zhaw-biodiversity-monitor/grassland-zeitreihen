@@ -108,7 +108,7 @@ bivariate_matrix_alpha <-
 
 
 
-create_legend <- function(bivariate_matrix, include_css = "www/mycss.css") {
+create_legend <- function(bivariate_matrix, attribute_y = "Attribute Y", include_css = "www/mycss.css") {
 
 
   stopifnot(nrow(bivariate_matrix) == ncol(bivariate_matrix))
@@ -129,21 +129,21 @@ create_legend <- function(bivariate_matrix, include_css = "www/mycss.css") {
 
 
 
-  y_axis_div <- tags$div(class = "rotate", "Attribute Y →")
+  y_axis_div <- tags$div(class = "ylabel", paste(attribute_y,"→"))
   matrix_div <- bivariate_matrix_df |>
     pmap(\(colour, row, col){
       tags$div(tags$div(paste(row, col, sep = "-"), class = "tooltip"), class = c("val", paste0("row-", row), paste0("col-", col)))
     }) |>
     tags$div(class = "matrix", style = "grid-template-columns: repeat(3, 50px); grid-auto-rows: 50px") #hardcoded, remove
 
-  empty_div <- tags$div()
-  x_axis_div <- tags$div("# of Observations→")
+  empty_div <- tags$div(class = "xlabel")
+  x_axis_div <- tags$div(class = "xlabel", "# of Observations→")
 
 
 
   tags$html(
     includeCSS(include_css),
     row_col_style,
-    tags$div(y_axis_div, matrix_div, empty_div, x_axis_div, class = "container"),
+    tags$div(y_axis_div, matrix_div, empty_div, x_axis_div, class = "container2"),
   )
 }

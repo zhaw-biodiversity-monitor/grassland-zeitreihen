@@ -2,13 +2,15 @@
 
 
 legend_html <- create_legend(bivariate_matrix)
+browser()
+# htmltools::write.csv(legend_html, file = "legend3.html", append = FALSE, quote = TRUE, sep = " ")
 
   leaflet(geodata_i) |>
     addTiles("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg", group = "Swissimage") |>
     addLayersControl(baseGroups = c("Swissimage", "Pixelkarte farbig", "Pixelkarte grau")) |>
     addPolygons() |>
     fitBounds(5.955902, 45.81796, 10.49206, 47.80845) |>
-    addControl(htmld, position = "bottomleft", className = "info")
+    addControl(legend_html, position = "bottomleft", className = "info")
 
 
 mypal <- rev(RColorBrewer::brewer.pal(4, "RdBu"))
