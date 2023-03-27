@@ -5,7 +5,8 @@
 # This script shows this test. It turns out non-spatial filtering takes about half the time it does for a spatial filter. I've therefore decided to stick with
 # a non-spatial filter for now.
 
-library(sf)
+library("sf")
+library("here")
 normallandschaft <- grass_sf$normallandschaft |> 
   st_transform(4326)
 

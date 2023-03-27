@@ -1,9 +1,7 @@
 {
-    "image": "sandbox",
+    "dockerFile": "Dockerfile",
     "customizations": {
-      // Configure properties specific to VS Code.
       "vscode": {
-        // Set *default* container specific settings.json values on container create.
         "settings": { 
           "r.bracketedPaste": true,
           "r.plot.useHttpgd": true,
@@ -12,7 +10,6 @@
           }
         },
         
-        // Add the IDs of extensions you want installed when the container is created.
         "extensions": [
           "reditorsupport.r",
           "rdebugger.r-debugger",
