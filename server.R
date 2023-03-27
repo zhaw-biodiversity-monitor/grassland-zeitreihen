@@ -160,7 +160,7 @@ shinyServer(function(input, output) {
 
 
 
-
+  # observeEvent(input, {browser()}
   # observeEvent(input$map_shape_click,{browser()})
 
   # Makes sure that this object exists even before the first clicking event
